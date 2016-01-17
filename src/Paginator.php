@@ -9,22 +9,17 @@
 
 namespace Zend\Paginator;
 
-use ArrayIterator;
 use Traversable;
+use ArrayIterator;
+use Zend\Filter\FilterInterface;
+use Zend\Paginator\Adapter;
 
 class Paginator extends GlobalPaginator
 {
     use JsonSerializeTrait,
         RenderTrait,
         FilterTrait,
-        CachedTrait;
-
-    /**
-     * The cache tag prefix used to namespace Paginator results in the cache
-     *
-     */
-    const CACHE_TAG_PREFIX = 'Zend_Paginator_';
-
+        CacheTrait;
 
     /**
      * @inheritdoc
@@ -33,30 +28,23 @@ class Paginator extends GlobalPaginator
     {
         $pageNumber = $this->normalizePageNumber($pageNumber);
 
+        $adapter = $this->adapter;
+
+        $filter = $this->getFilter();
+        if ($filter instanceof FilterInterface) {
+            $adapter = new Adapter\FilterAdapter($adapter, $filter);
+        }
+
         if ($this->cacheEnabled()) {
-            $data = static::$cache->getItem($this->_getCacheId($pageNumber));
-            if ($data) {
-                return $data;
-            }
+            $adapter = new Adapter\CacheAdapter($adapter, $this->cache);
         }
 
         $offset = ($pageNumber - 1) * $this->getItemCountPerPage();
 
-        $items = $this->adapter->getItems($offset, $this->getItemCountPerPage());
-
-        $filter = $this->getFilter();
-
-        if ($filter !== null) {
-            $items = $filter->filter($items);
-        }
+        $items =  $adapter->getItems($offset, $this->getItemCountPerPage());
 
         if (!$items instanceof Traversable) {
             $items = new ArrayIterator($items);
-        }
-
-        if ($this->cacheEnabled()) {
-            $cacheId = $this->_getCacheId($pageNumber);
-            static::$cache->setItem($cacheId, $items);
         }
 
         return $items;

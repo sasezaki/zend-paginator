@@ -68,7 +68,8 @@ class PaginatorTest extends \PHPUnit_Framework_TestCase
         $this->config = Config\Factory::fromFile(__DIR__ . '/_files/config.xml', true);
 
         $this->cache = CacheFactory::adapterFactory('memory', ['memory_limit' => 0]);
-        Paginator\Paginator::setCache($this->cache);
+//        Paginator\Paginator::setCache($this->cache);
+        $this->paginator->setCache($this->cache);
 
         $this->_restorePaginatorDefaults();
     }
@@ -853,14 +854,14 @@ class PaginatorTest extends \PHPUnit_Framework_TestCase
     public function testGetCacheId()
     {
         $adapter = new TestAsset\TestAdapter;
-        $paginator = new Paginator\Paginator($adapter);
-        $reflectionGetCacheId = new ReflectionMethod($paginator, '_getCacheId');
+        $adapter = new Paginator\Adapter\CacheAdapter($adapter, $this->cache);
+        $reflectionGetCacheId = new ReflectionMethod($adapter, 'getCacheId');
         $reflectionGetCacheId->setAccessible(true);
-        $outputGetCacheId = $reflectionGetCacheId->invoke($paginator, null);
+        $outputGetCacheId = $reflectionGetCacheId->invoke($adapter, 1, 10);
 
-        $reflectionGetCacheInternalId = new ReflectionMethod($paginator, '_getCacheInternalId');
+        $reflectionGetCacheInternalId = new ReflectionMethod($adapter, 'getCacheInternalId');
         $reflectionGetCacheInternalId->setAccessible(true);
-        $outputGetCacheInternalId = $reflectionGetCacheInternalId->invoke($paginator);
+        $outputGetCacheInternalId = $reflectionGetCacheInternalId->invoke($adapter, 10);
 
         $this->assertEquals($outputGetCacheId, 'Zend_Paginator_1_' . $outputGetCacheInternalId);
     }
